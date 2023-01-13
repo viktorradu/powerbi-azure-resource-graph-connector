@@ -1,0 +1,1 @@
+# powerbi-azure-resource-graph-connector
