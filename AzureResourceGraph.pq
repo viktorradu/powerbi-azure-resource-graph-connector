@@ -29,13 +29,13 @@ AzureResourceGraphType = type function(
 
 AzureResourceGraph.Internal = (subscriptionId as text, optional query as text) =>
     let
-        query = Text.ToBinary("{""subscriptions"":[""" & subscriptionId & """],""query"":""" & query & """}"),
+        query = Text.ToBinary("{""subscriptions"":[""" & subscriptionId & """],""query"":""" & Text.Replace(query,"""", "'" ) & """}"),
         RawResponse = Web.Contents("https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01", [
             Headers = [#"Content-Type" = "application/json"],
             Content = query]),
         Response = Json.Document(RawResponse),
         ResultTable = Table.FromList(Response[data], Splitter.SplitByNothing(), null, null, ExtraValues.Error),
-        Result = Table.ExpandRecordColumn(ResultTable, "Column1", Record.FieldNames(Table.Column(ResultTable, "Column1"){0}))
+        Result = try Table.ExpandRecordColumn(ResultTable, "Column1", Record.FieldNames(Table.Column(ResultTable, "Column1"){0})) otherwise #table({},{})
     in
         Result;
 
