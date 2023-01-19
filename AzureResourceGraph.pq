@@ -14,6 +14,11 @@ AzureResourceGraphType = type function(
         Documentation.FieldDescription = "Azure Subscription Id",
         Documentation.SampleValues = {"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}
     ]),
+    targetCloud as (type text meta [
+        Documentation.FieldCaption = "Environment",
+        Documentation.FieldDescription = "Target cloud environment",
+        Documentation.AllowedValues = {"Commercial", "GCC High"}
+    ]),
     optional query as (type text meta [
         Documentation.FieldCaption = "Query",
         Documentation.FieldDescription = "Azure Resource Graph Explorer query",
@@ -27,12 +32,13 @@ AzureResourceGraphType = type function(
         Documentation.LongDescription = Extension.LoadString("ConnectorDescription")
     ];
 
-AzureResourceGraph.Internal = (subscriptionId as text, optional query as text) =>
+AzureResourceGraph.Internal = (subscriptionId as text, targetCloud as text, optional query as text) =>
     let
         query = Text.ToBinary("{""subscriptions"":[""" & subscriptionId & """],""query"":""" & Text.Replace(query,"""", "'" ) & """}"),
-        RawResponse = Web.Contents("https://management.azure.com/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01", [
-            Headers = [#"Content-Type" = "application/json"],
-            Content = query]),
+        rootUrl = if targetCloud = "GCC High" then "https://management.usgovcloudapi.net" else "https://management.azure.com",
+        RawResponse = Web.Contents(rootUrl & "/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01", [
+             Headers = [#"Content-Type" = "application/json"],
+             Content = query]),
         Response = Json.Document(RawResponse),
         ResultTable = Table.FromList(Response[data], Splitter.SplitByNothing(), null, null, ExtraValues.Error),
         Result = try Table.ExpandRecordColumn(ResultTable, "Column1", Record.FieldNames(Table.Column(ResultTable, "Column1"){0})) otherwise #table({},{})
