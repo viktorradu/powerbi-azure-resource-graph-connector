@@ -9,9 +9,14 @@ logout_uri = "https://login.microsoftonline.com/logout.srf";
 shared AzureResourceGraph.Contents = Value.ReplaceType(AzureResourceGraph.Internal, AzureResourceGraphType);
 
 AzureResourceGraphType = type function(
-    subscriptionId as (type text meta [
-        Documentation.FieldCaption = "Subscription Id",
-        Documentation.FieldDescription = "Azure Subscription Id",
+    scope as (type text meta [
+        Documentation.FieldCaption = "Scope",
+        Documentation.FieldDescription = "Query scope",
+        Documentation.AllowedValues = {"Directory", "Subscription"}
+    ]),
+    id as (type text meta [
+        Documentation.FieldCaption = "Id",
+        Documentation.FieldDescription = "Azure Directory or Subscription Id",
         Documentation.SampleValues = {"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"}
     ]),
     targetCloud as (type text meta [
@@ -32,13 +37,16 @@ AzureResourceGraphType = type function(
         Documentation.LongDescription = Extension.LoadString("ConnectorDescription")
     ];
 
-AzureResourceGraph.Internal = (subscriptionId as text, targetCloud as text, optional query as text) =>
+AzureResourceGraph.Internal = (scope as text, subscriptionId as text, targetCloud as text, optional query as text) =>
     let
-        query = Text.ToBinary("{""subscriptions"":[""" & subscriptionId & """],""query"":""" & Text.Replace(query,"""", "'" ) & """}"),
+        prefix = "{",
+        scopeSegment = if scope = "Subscription" then """subscriptions"":[""" & subscriptionId & """]," else "",
+        suffix = """query"":""" & Text.Replace(query,"""", "'" ) & """}",
+        queryBytes = Text.ToBinary(prefix & scopeSegment & suffix),
         rootUrl = if targetCloud = "GCC High" then "https://management.usgovcloudapi.net" else "https://management.azure.com",
         RawResponse = Web.Contents(rootUrl & "/providers/Microsoft.ResourceGraph/resources?api-version=2021-03-01", [
              Headers = [#"Content-Type" = "application/json"],
-             Content = query]),
+             Content = queryBytes]),
         Response = Json.Document(RawResponse),
         ResultTable = Table.FromList(Response[data], Splitter.SplitByNothing(), null, null, ExtraValues.Error),
         Result = try Table.ExpandRecordColumn(ResultTable, "Column1", Record.FieldNames(Table.Column(ResultTable, "Column1"){0})) otherwise #table({},{})
