@@ -69,6 +69,15 @@ GetPage = (scope as text, subscriptionId as text, skipToken as text, targetCloud
 GetNextToken = (response) as nullable text => Record.FieldOrDefault(response, "$skipToken");
 
 AzureResourceGraph = [
+    TestConnection = (dataSourcePath) => 
+        let
+            params = Json.Document(dataSourcePath),
+            scope = params[scope],
+            subscriptionId = params[id],
+            targetCloud = params[targetCloud]
+        in
+            {"AzureResourceGraph.Contents", scope, subscriptionId, targetCloud}
+    ,
     Authentication = [
         Aad = [
             AuthorizationUri = "https://login.microsoftonline.com/common/oauth2/authorize",
