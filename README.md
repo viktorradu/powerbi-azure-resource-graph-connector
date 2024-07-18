@@ -1,3 +1,5 @@
+## This connector is now built into Power BI, so make sure to delete this custom one
+
 # Azure Resource Graph Connector for Power BI
 
 Build any query in Azure Resource Graph Explorer and use it in Power BI reports
