@@ -1,4 +1,5 @@
-## This connector is now built into Power BI, so make sure to delete this custom one
+# This connector is now built into Power BI, so make sure to delete this custom one
+
 
 # Azure Resource Graph Connector for Power BI
 
